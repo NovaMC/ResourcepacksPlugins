@@ -38,6 +38,8 @@ public class ResourcePack {
     private byte[] hash = new byte[0];
     private int format;
     private int version;
+    private boolean forced;
+    private String prompt;
     private boolean restricted;
     private String permission;
     private ClientType type;
@@ -127,6 +129,23 @@ public class ResourcePack {
      * @param type The type of the pack depending on the client which should receive it
      */
     public ResourcePack(String name, String url, String hash, int format, int version, boolean restricted, String permission, ClientType type) {
+        this(name, url, hash, format, version, false, "", restricted, permission, type);
+    }
+
+    /**
+     * Object representation of a resourcepack set in the plugin's config file.
+     * @param name The name of the resourcepack as set in the config. Serves as an uinque identifier. Correct case.
+     * @param url The url where this resourcepack is located at and where the client will download it from
+     * @param hash The hash set for this resourcepack. Ideally this is the zip file's sha1 hash.
+     * @param format The version of this resourcepack as defined in the pack.mcmeta as pack_format
+     * @param version The Minecraft version that this resourcepack is for
+     * @param forced Whether the client should be told to force this pack
+     * @param prompt The prompt to be shown to the client
+     * @param permission A custom permission for this pack
+     * @param restricted Whether or not this pack should only be send to players with the pluginname.pack.packname permission
+     * @param type The type of the pack depending on the client which should receive it
+     */
+    public ResourcePack(String name, String url, String hash, int format, int version, boolean forced, String prompt, boolean restricted, String permission, ClientType type) {
         this.name = name;
         this.url = url;
         if (hash != null && !hash.isEmpty()) {
@@ -138,6 +157,8 @@ public class ResourcePack {
         }
         this.format = format;
         this.version = version;
+        this.forced = forced;
+        this.prompt = prompt;
         this.restricted = restricted;
         this.permission = permission;
         this.type = type;
@@ -220,6 +241,48 @@ public class ResourcePack {
             return false;
         }
         this.version = version;
+        return true;
+    }
+
+    /**
+     * Whether this pack should be forced on the client
+     * @return Whether the pack is forced or not
+     */
+    public boolean isForced() {
+        return forced;
+    }
+
+    /**
+     * Whether this pack should be forced on the client
+     * @param forced <code>true</code> if pack should be forced, <code>false</code> if not
+     * @return Whether or not the forced status changed
+     */
+    public boolean setForced(boolean forced) {
+        if (this.forced == forced) {
+            return false;
+        }
+        this.forced = forced;
+        return true;
+    }
+
+    /**
+     * Get the prompt for this pack
+     * @return The prompt as a string
+     */
+    public String getPrompt() {
+        return prompt;
+    }
+
+    /**
+     * The prompt to display for this pack
+     * @param prompt The prompt as a string
+     * @return Whether or not the prompt status changed
+     */
+    public boolean setPrompt(String prompt) {
+        if (this.prompt.equals(prompt)) {
+            return false;
+        }
+        this.prompt = prompt;
         return true;
     }
 

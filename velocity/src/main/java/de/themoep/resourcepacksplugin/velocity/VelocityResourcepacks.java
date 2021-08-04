@@ -31,6 +31,7 @@ import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.messages.ChannelIdentifier;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
+import com.velocitypowered.api.proxy.player.ResourcePackInfo;
 import de.themoep.minedown.adventure.MineDown;
 import de.themoep.resourcepacksplugin.core.ClientType;
 import de.themoep.resourcepacksplugin.core.PluginLogger;
@@ -59,6 +60,7 @@ import de.themoep.utils.lang.LanguageConfig;
 import de.themoep.utils.lang.velocity.LanguageManager;
 import de.themoep.utils.lang.velocity.Languaged;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainComponentSerializer;
 import ninja.leaping.configurate.ConfigurationNode;
@@ -443,7 +445,13 @@ public class VelocityResourcepacks implements ResourcepacksPlugin, Languaged {
     protected void sendPack(Player player, ResourcePack pack) {
         ProtocolVersion clientVersion = player.getProtocolVersion();
         if (clientVersion.getProtocol() >= ProtocolVersion.MINECRAFT_1_8.getProtocol()) {
-            player.sendResourcePack(pack.getUrl() + PackManager.HASH_KEY + pack.getHash(), pack.getRawHash());
+            ResourcePackInfo.Builder builder = proxy.createResourcePackBuilder(pack.getUrl() + PackManager.HASH_KEY + pack.getHash())
+                    .setHash(pack.getRawHash())
+                    .setShouldForce(pack.isForced());
+            if (!pack.getPrompt().isEmpty()) {
+                builder.setPrompt(LegacyComponentSerializer.legacyAmpersand().deserialize(pack.getPrompt()));
+            }
+            player.sendResourcePackOffer(builder.build());
         } else {
             log(Level.WARNING, "Cannot send the pack " + pack.getName() + " (" + pack.getUrl() + ") to " + player.getUsername() + " as he uses the unsupported protocol version " + clientVersion + "!");
             log(Level.WARNING, "Consider blocking access to your server for clients with version under 1.8 if you want this plugin to work for everyone!");
