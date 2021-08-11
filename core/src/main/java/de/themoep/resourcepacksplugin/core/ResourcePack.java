@@ -426,6 +426,8 @@ public class ResourcePack {
         if (name.equalsIgnoreCase(PackManager.EMPTY_IDENTIFIER)) {
             map.put("format", null);
             map.put("version", null);
+            map.put("forced", null);
+            map.put("prompt", null);
             map.put("restricted", null);
             map.put("permission", null);
         } else {
@@ -436,6 +438,8 @@ public class ResourcePack {
             } else {
                 map.put("version", null);
             }
+            map.put("forced", forced);
+            map.put("prompt", prompt);
             map.put("restricted", restricted);
             map.put("permission", permission);
             if (type == ClientType.ORIGINAL) {
