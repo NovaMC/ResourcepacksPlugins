@@ -939,12 +939,13 @@ public class PackManager {
     }
 
     protected IResourcePackSelectEvent.Status checkPack(UUID playerId, ResourcePack pack, IResourcePackSelectEvent.Status status) {
-        if(pack == null) {
+        if (pack == null) {
             return status;
         }
-        boolean rightFormat = pack.getFormat() <= plugin.getPlayerPackFormat(playerId)
-                && pack.getVersion() <= plugin.getPlayerProtocol(playerId)
-                && pack.getType() == plugin.getPlayerClientType(playerId);
+        boolean rightFormat = pack.getType() == plugin.getPlayerClientType(playerId)
+                && (plugin.getPlayerProtocol(playerId) < 0 /* unknown version */ || (
+                        pack.getFormat() <= plugin.getPlayerPackFormat(playerId)
+                                && pack.getVersion() <= plugin.getPlayerProtocol(playerId)));
         boolean hasPermission = !pack.isRestricted() || plugin.checkPermission(playerId, pack.getPermission());
         if(rightFormat && hasPermission) {
             return IResourcePackSelectEvent.Status.SUCCESS;
@@ -1079,7 +1080,9 @@ public class PackManager {
      * @return The pack format; <code>-1</code> if the player has an unknown version
      */
     public int getPackFormat(int version) {
-        if (version >= MinecraftVersion.MINECRAFT_1_17.getProtocolNumber()) {
+        if (version >= MinecraftVersion.MINECRAFT_1_18.getProtocolNumber()) {
+            return 8;
+        } else if (version >= MinecraftVersion.MINECRAFT_1_17.getProtocolNumber()) {
             return 7;
         } else if (version >= 749) { // 1.16.2 / release candidate 1
             return 6;

@@ -214,8 +214,8 @@ public class VelocityResourcepacks implements ResourcepacksPlugin, Languaged {
         }
         log(Level.INFO, "Debug level: " + getLogLevel().getName());
 
-        if (getConfig().getBoolean("useauth")) {
-            log(Level.INFO, "Compatibility with backend AuthMe install ('useauth') is enabled.");
+        if (getConfig().getBoolean("use-auth-plugin", getConfig().getBoolean("useauth", false))) {
+            log(Level.INFO, "Compatibility with backend authentication plugin ('use-auth-plugin') is enabled.");
         }
 
         lm = new LanguageManager(this, getConfig().getString("default-language"));
@@ -445,13 +445,17 @@ public class VelocityResourcepacks implements ResourcepacksPlugin, Languaged {
     protected void sendPack(Player player, ResourcePack pack) {
         ProtocolVersion clientVersion = player.getProtocolVersion();
         if (clientVersion.getProtocol() >= ProtocolVersion.MINECRAFT_1_8.getProtocol()) {
-            ResourcePackInfo.Builder builder = proxy.createResourcePackBuilder(pack.getUrl() + PackManager.HASH_KEY + pack.getHash())
-                    .setHash(pack.getRawHash())
+            ResourcePackInfo.Builder packInfoBuilder = proxy.createResourcePackBuilder(pack.getUrl() + PackManager.HASH_KEY + pack.getHash())
                     .setShouldForce(pack.isForced());
             if (!pack.getPrompt().isEmpty()) {
-                builder.setPrompt(LegacyComponentSerializer.legacyAmpersand().deserialize(pack.getPrompt()));
+                packInfoBuilder.setPrompt(LegacyComponentSerializer.legacyAmpersand().deserialize(pack.getPrompt()));
             }
-            player.sendResourcePackOffer(builder.build());
+            if (pack.getRawHash().length == 20) {
+                packInfoBuilder.setHash(pack.getRawHash());
+            } else if (pack.getRawHash().length > 0) {
+                log(Level.WARNING, "Invalid sha1 hash sum for pack " + pack.getName() + " detected! (It was '" + pack.getHash() + "')");
+            }
+            player.sendResourcePackOffer(packInfoBuilder.build());
         } else {
             log(Level.WARNING, "Cannot send the pack " + pack.getName() + " (" + pack.getUrl() + ") to " + player.getUsername() + " as he uses the unsupported protocol version " + clientVersion + "!");
             log(Level.WARNING, "Consider blocking access to your server for clients with version under 1.8 if you want this plugin to work for everyone!");
@@ -741,7 +745,7 @@ public class VelocityResourcepacks implements ResourcepacksPlugin, Languaged {
 
     @Override
     public boolean isAuthenticated(UUID playerId) {
-        return !getConfig().getBoolean("useauth") || authenticatedPlayers.contains(playerId);
+        return !getConfig().getBoolean("use-auth-plugin", getConfig().getBoolean("useauth", false)) || authenticatedPlayers.contains(playerId);
     }
 
     @Override

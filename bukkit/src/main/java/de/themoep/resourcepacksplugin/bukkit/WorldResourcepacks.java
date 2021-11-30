@@ -18,6 +18,8 @@ package de.themoep.resourcepacksplugin.bukkit;
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import com.nickuc.login.api.nLoginAPI;
+import com.nickuc.openlogin.bukkit.OpenLoginBukkit;
 import de.themoep.minedown.MineDown;
 import de.themoep.resourcepacksplugin.bukkit.events.ResourcePackSelectEvent;
 import de.themoep.resourcepacksplugin.bukkit.events.ResourcePackSendEvent;
@@ -25,6 +27,8 @@ import de.themoep.resourcepacksplugin.bukkit.internal.InternalHelper;
 import de.themoep.resourcepacksplugin.bukkit.internal.InternalHelper_fallback;
 import de.themoep.resourcepacksplugin.bukkit.listeners.AuthmeLoginListener;
 import de.themoep.resourcepacksplugin.bukkit.listeners.DisconnectListener;
+import de.themoep.resourcepacksplugin.bukkit.listeners.NLoginListener;
+import de.themoep.resourcepacksplugin.bukkit.listeners.OpeNLoginListener;
 import de.themoep.resourcepacksplugin.bukkit.listeners.ProxyPackListener;
 import de.themoep.resourcepacksplugin.bukkit.listeners.WorldSwitchListener;
 import de.themoep.resourcepacksplugin.core.ClientType;
@@ -45,7 +49,6 @@ import de.themoep.resourcepacksplugin.core.events.IResourcePackSendEvent;
 import de.themoep.utils.lang.LanguageConfig;
 import de.themoep.utils.lang.bukkit.LanguageManager;
 import fr.xephi.authme.api.v3.AuthMeApi;
-import fr.xephi.authme.events.LoginEvent;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.ChatColor;
@@ -111,7 +114,9 @@ public class WorldResourcepacks extends JavaPlugin implements ResourcepacksPlugi
     private boolean protocolSupportApi = false;
     private GeyserConnector geyser;
     private FloodgateApi floodgate;
-    private AuthMeApi authmeApi;
+    private AuthMeApi authmeApi = null;
+    private OpenLoginBukkit openLogin = null;
+    private nLoginAPI nLogin = null;
     private ProxyPackListener proxyPackListener;
 
     public void onEnable() {
@@ -327,11 +332,22 @@ public class WorldResourcepacks extends JavaPlugin implements ResourcepacksPlugi
         getPackManager().setStoredPacksOverride(getConfig().getBoolean("stored-packs-override-assignments"));
         logDebug("Stored packs override assignments: " + getPackManager().getStoredPacksOverride());
 
-        if (getConfig().getBoolean("useauthme", true) && getServer().getPluginManager().getPlugin("AuthMe") != null) {
-            authmeApi = AuthMeApi.getInstance();
-            getLogger().log(Level.INFO, "Detected AuthMe " + getServer().getPluginManager().getPlugin("AuthMe").getDescription().getVersion());
-            LoginEvent.getHandlerList().unregister(this);
-            getServer().getPluginManager().registerEvents(new AuthmeLoginListener(this), this);
+        if (getConfig().getBoolean("use-auth-plugin", getConfig().getBoolean("useauthme", true))) {
+            if (getServer().getPluginManager().getPlugin("AuthMe") != null) {
+                authmeApi = AuthMeApi.getInstance();
+                getLogger().log(Level.INFO, "Detected AuthMe " + getServer().getPluginManager().getPlugin("AuthMe").getDescription().getVersion());
+                getServer().getPluginManager().registerEvents(new AuthmeLoginListener(this), this);
+            }
+            if (getServer().getPluginManager().getPlugin("OpeNLogin") != null) {
+                openLogin = (OpenLoginBukkit) getServer().getPluginManager().getPlugin("OpeNLogin");
+                getLogger().log(Level.INFO, "Detected OpeNLogin " + openLogin.getDescription().getVersion());
+                getServer().getPluginManager().registerEvents(new OpeNLoginListener(this), this);
+            }
+            if (getServer().getPluginManager().getPlugin("nLogin") != null) {
+                nLogin = nLoginAPI.getApi();
+                getLogger().log(Level.INFO, "Detected nLogin " + nLogin.getVersion());
+                getServer().getPluginManager().registerEvents(new NLoginListener(this), this);
+            }
         }
         return true;
     }
@@ -696,10 +712,15 @@ public class WorldResourcepacks extends JavaPlugin implements ResourcepacksPlugi
 
     @Override
     public boolean isAuthenticated(UUID playerId) {
-        if(authmeApi == null)
-            return true;
         Player player = getServer().getPlayer(playerId);
-        return player != null && authmeApi.isAuthenticated(player);
+        if (authmeApi != null) {
+            return player != null && authmeApi.isAuthenticated(player);
+        } else if (openLogin != null) {
+            return player != null && openLogin.getLoginManagement().isAuthenticated(player.getName());
+        } else if (nLogin != null) {
+            return player != null && nLogin.isAuthenticated(player);
+        }
+        return true;
     }
 
     @Override
